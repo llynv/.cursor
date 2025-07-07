@@ -1,25 +1,254 @@
 ---
-description: triggered by natural-language ask such as “Why does this crash?”
+description: Activate when user encounters crashes, performance issues, memory leaks, or requests workflow optimization. Provides systematic debugging approaches   and productivity boosters.
 globs:
 alwaysApply: false
 ---
----
-description: Agent-triggered debugging & workflow booster
-alwaysApply: false
-priority: 50
-agentDescription: |
-  Invoke when the user asks why code crashes, hangs, or how to optimise or speed up their workflow.
----
+### Debug Protocol (Systematic Approach)
+1. **Problem Reproduction**:
+   - Create minimal reproducible example (≤ 50 lines)
+   - Document exact steps to reproduce
+   - Note environment details (OS, versions, hardware)
+   - Provide input data that triggers the issue
 
-### Debug protocol
-1. Reproduce with minimal input (link gist or inline).
-2. Trace cause → effect; highlight faulty var/state.
-3. Stepping plan by language:
-   * **C#** – VS/Rider breakpoints, Memory window.
-   * **TS/JS** – Chrome DevTools, ignore `node_modules`.
-   * **C++** – gdb/lldb + `rr` replay.
+2. **Root Cause Analysis**:
+   - Use binary search debugging: comment out half the code
+   - Add strategic logging points with timestamps
+   - Instrument variable state at critical points
+   - Check assumptions with assertions
 
-### Productivity boosters
-* Pre-commit hook: `npm test` or `dotnet test`.
-* VS Code `tasks.json` & `launch.json` skeleton if missing.
-* Suggest feature flag if fix spans > 3 files.
+3. **Investigation Tools by Language**:
+
+   **TypeScript/JavaScript**:
+   ```bash
+   # Chrome DevTools debugging
+   node --inspect-brk src/index.ts
+   # Open chrome://inspect in browser
+
+   # Memory leak detection
+   node --inspect --max-old-space-size=4096 src/index.ts
+
+   # CPU profiling
+   node --prof src/index.ts
+   node --prof-process isolate-*.log > profile.txt
+   ```
+
+   **C# (.NET)**:
+   ```bash
+   # Visual Studio debugging
+   dotnet run --configuration Debug
+
+   # Memory profiling with dotMemory
+   dotnet-dump collect -p <PID>
+
+   # Performance profiling
+   dotnet-trace collect --providers Microsoft-DotNETCore-SampleProfiler
+   ```
+
+   **C++**:
+   ```bash
+   # GDB debugging
+   gdb -ex run -ex bt -ex quit --args ./program input.txt
+
+   # Valgrind memory checking
+   valgrind --leak-check=full --show-leak-kinds=all ./program
+
+   # Record-replay debugging with rr
+   rr record ./program input.txt
+   rr replay  # Then use GDB commands
+   ```
+
+### Performance Debugging (Systematic)
+* **Profiling Workflow**:
+  1. Establish baseline metrics (before optimization)
+  2. Profile with real data (not toy examples)
+  3. Identify hot paths (80/20 rule - focus on bottlenecks)
+  4. Optimize one thing at a time
+  5. Measure impact after each change
+
+* **Memory Debugging**:
+  ```typescript
+  // Memory monitoring for Node.js
+  const memUsage = process.memoryUsage();
+  console.log({
+    rss: `${Math.round(memUsage.rss / 1024 / 1024)} MB`,
+    heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)} MB`,
+    heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)} MB`,
+    external: `${Math.round(memUsage.external / 1024 / 1024)} MB`
+  });
+  ```
+
+### Development Environment Optimization
+* **VS Code Productivity Setup**:
+  ```json
+  // .vscode/settings.json
+  {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true,
+      "source.organizeImports": true
+    },
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "emmet.includeLanguages": {
+      "typescript": "html"
+    }
+  }
+
+  // .vscode/tasks.json for build automation
+  {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build-and-test",
+        "type": "shell",
+        "command": "npm run build && npm test",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      }
+    ]
+  }
+  ```
+
+* **Git Productivity Hooks**:
+  ```bash
+  #!/bin/sh
+  # .git/hooks/pre-commit
+  echo "Running pre-commit checks..."
+
+  # Run linter
+  npm run lint
+  if [ $? -ne 0 ]; then
+    echo "❌ Linting failed. Please fix errors before committing."
+    exit 1
+  fi
+
+  # Run tests
+  npm run test:changed
+  if [ $? -ne 0 ]; then
+    echo "❌ Tests failed. Please fix before committing."
+    exit 1
+  fi
+
+  echo "✅ All checks passed. Proceeding with commit."
+  ```
+
+### Workflow Automation
+* **Custom Scripts for Common Tasks**:
+  ```json
+  // package.json scripts section
+  {
+    "scripts": {
+      "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+      "test:watch": "vitest --watch",
+      "test:coverage": "vitest --coverage",
+      "deploy:staging": "npm run build && npm run test && npm run deploy -- --env staging",
+      "analyze:bundle": "npm run build && npx webpack-bundle-analyzer dist/static/js/*.js",
+      "clean:all": "rm -rf node_modules dist .next && npm install"
+    }
+  }
+  ```
+
+* **Advanced Productivity Tools**:
+  - **Code Generation**: Snippet libraries for common patterns
+  - **Live Reload**: Hot module replacement for faster development
+  - **Parallel Processing**: Run tests/builds in parallel when possible
+  - **Caching**: Implement build caching for faster CI/CD
+
+### Error Handling & Monitoring
+* **Production Error Tracking**:
+  ```typescript
+  // Comprehensive error logging
+  class ErrorLogger {
+    static captureError(error: Error, context: Record<string, any>) {
+      const errorInfo = {
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+        context,
+        userAgent: navigator?.userAgent,
+        url: window?.location?.href
+      };
+
+      // Send to monitoring service
+      console.error('Captured error:', errorInfo);
+      // Sentry.captureException(error, { contexts: { custom: context } });
+    }
+  }
+  ```
+
+### Feature Flag Implementation
+* **Safe Deployment Strategy**:
+  ```typescript
+  // Feature flag for gradual rollout
+  class FeatureFlags {
+    private static flags = new Map<string, boolean>();
+
+    static initialize(flags: Record<string, boolean>) {
+      Object.entries(flags).forEach(([key, value]) => {
+        this.flags.set(key, value);
+      });
+    }
+
+    static isEnabled(flagName: string): boolean {
+      return this.flags.get(flagName) ?? false;
+    }
+
+    // Use for large changes spanning multiple files
+    static withFeatureFlag<T>(
+      flagName: string,
+      newImplementation: () => T,
+      oldImplementation: () => T
+    ): T {
+      return this.isEnabled(flagName)
+        ? newImplementation()
+        : oldImplementation();
+    }
+  }
+  ```
+
+### Continuous Integration Optimization
+* **Fast Feedback CI Pipeline**:
+  ```yaml
+  # .github/workflows/ci.yml
+  name: CI Pipeline
+  on: [push, pull_request]
+
+  jobs:
+    quality-gate:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+        - uses: actions/setup-node@v3
+          with:
+            node-version: '20'
+            cache: 'npm'
+
+        # Parallel quality checks
+        - name: Install dependencies
+          run: npm ci
+
+        - name: Lint & Format Check
+          run: |
+            npm run lint
+            npm run format:check
+
+        - name: Type Check
+          run: npm run type-check
+
+        - name: Unit Tests
+          run: npm run test:unit -- --coverage
+
+        - name: Build
+          run: npm run build
+
+        - name: E2E Tests
+          run: npm run test:e2e
+  ```
+```

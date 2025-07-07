@@ -3,36 +3,231 @@ description:
 globs:
 alwaysApply: true
 ---
----
-description: Node + TypeScript backend (Clean / Hex Architecture)
-globs: ["server/**/*.{ts,js}", "!node_modules/**"]
-alwaysApply: true
-priority: 80
----
+### Architecture (Clean/Hexagonal)
+* **Layer Structure** (Dependency Rule):
+  ```
+  src/
+  ├── domain/           # Business logic, entities, value objects
+  ├── application/      # Use cases, application services
+  ├── infrastructure/   # External adapters (DB, APIs, file system)
+  └── presentation/     # Controllers, routes, middleware
+  ```
 
-### Layout
-`domain/ → application/ → infrastructure/ → presentation/`  (ports/adapters). :contentReference[oaicite:12]{index=12}
+* **Dependency Flow**: `presentation → application → domain ← infrastructure`
+* **Interface Segregation**: Define ports in domain, implement adapters in infrastructure
+* **No Framework Coupling**: Domain layer independent of Express/Fastify/etc.
 
-### Runtime & tooling
-* Node ≥ 20; dev start: `node --env-file=.env.local --no-warnings -r ts-node/register src/index.ts`.
-* ESLint + Prettier as per repo root.
+### Runtime & Development Environment
+* **Node Version**: ≥ 20.0.0 (use `.nvmrc` for version pinning)
+* **Development Setup**:
+  ```bash
+  # Package.json scripts
+  "dev": "node --env-file=.env.local --loader ts-node/esm --watch src/index.ts"
+  "build": "tsc && tsc-alias"
+  "start": "node dist/index.js"
+  ```
 
-### Data
-* **Prisma** ORM; migrations via `prisma migrate`. All queries typed. :contentReference[oaicite:13]{index=13}
-* DTO layer maps Prisma models to transport objects (Swagger cannot annotate Prisma types). :contentReference[oaicite:14]{index=14}
+* **TypeScript Configuration**:
+  ```json
+  {
+    "compilerOptions": {
+      "strict": true,
+      "exactOptionalPropertyTypes": true,
+      "noUncheckedIndexedAccess": true,
+      "verbatimModuleSyntax": true,
+      "module": "ESNext",
+      "target": "ES2022",
+      "moduleResolution": "bundler"
+    }
+  }
+  ```
 
-### API & docs
-* REST default; OpenAPI spec auto-generated (Nest Swagger or `tsoa`) and committed.
-* Routes versioned `/api/v1/*`.
+### Database & Data Layer
+* **ORM**: Prisma with explicit transaction management
+* **Migration Strategy**:
+  - All schema changes via `prisma migrate dev`
+  - Seed data in `prisma/seed.ts`
+  - Schema validation in CI/CD pipeline
 
-### Security
-* Enable `helmet`, `csurf`; rate-limit auth endpoints.
-* Secrets via `dotenv-flow`; never hard-code.
+* **Query Patterns**:
+  ```typescript
+  // ✅ Good: Explicit includes and error handling
+  async findUserWithPosts(id: string): Promise<UserWithPosts | null> {
+    try {
+      return await this.prisma.user.findUnique({
+        where: { id },
+        include: { posts: { orderBy: { createdAt: 'desc' } } }
+      });
+    } catch (error) {
+      this.logger.error('Failed to fetch user with posts', { userId: id, error });
+      throw new DatabaseError('User query failed');
+    }
+  }
+  ```
 
-### Observability
-* `/healthz` (readiness) + `/metrics` (Prometheus).
-* Structured logging via **pino**; redact PII.
+* **DTO Pattern**: Always map Prisma models to DTOs for API responses
+  ```typescript
+  export class UserResponseDTO {
+    constructor(
+      public readonly id: string,
+      public readonly email: string,
+      public readonly name: string,
+      public readonly createdAt: Date
+    ) {}
 
-### Performance targets
-* Cold start < 300 ms; p95 latency < 200 ms under 50 RPS (locally measured).
-* CI load-test stage asserts these budgets.
+    static fromPrismaModel(user: User): UserResponseDTO {
+      return new UserResponseDTO(user.id, user.email, user.name, user.createdAt);
+    }
+  }
+  ```
+
+### API Design & Documentation
+* **REST Conventions**:
+  - Resource-based URLs: `/api/v1/users/{id}/posts`
+  - HTTP methods: GET (read), POST (create), PUT (replace), PATCH (update), DELETE
+  - Status codes: 200 (success), 201 (created), 400 (bad request), 401 (unauthorized), 404 (not found), 500 (server error)
+
+* **OpenAPI Documentation**:
+  - Auto-generated with Swagger/TSOA
+  - All endpoints documented with examples
+  - Schema validation for request/response bodies
+  - API versioning strategy: `/api/v1/`, `/api/v2/`
+
+* **Request/Response Patterns**:
+  ```typescript
+  // Standard response envelope
+  interface ApiResponse<T> {
+    success: boolean;
+    data?: T;
+    error?: {
+      code: string;
+      message: string;
+      details?: unknown;
+    };
+    meta?: {
+      pagination?: PaginationMeta;
+      timestamp: string;
+    };
+  }
+  ```
+
+### Security Implementation
+* **Essential Middleware**:
+  - `helmet()` for security headers
+  - `cors()` with specific origin configuration
+  - `express-rate-limit` for API protection
+  - `express-validator` for input validation
+
+* **Authentication & Authorization**:
+  - JWT tokens with refresh token rotation
+  - RBAC (Role-Based Access Control) with granular permissions
+  - API key authentication for service-to-service communication
+  - Session management with secure cookie settings
+
+* **Input Validation**:
+  ```typescript
+  // Zod schema validation
+  const CreateUserSchema = z.object({
+    email: z.string().email().max(255),
+    password: z.string().min(8).max(128),
+    name: z.string().min(1).max(100).trim()
+  });
+
+  // Route validation middleware
+  app.post('/users', validate(CreateUserSchema), createUserController);
+  ```
+
+### Error Handling & Logging
+* **Structured Logging**: Pino with log levels and correlation IDs
+  ```typescript
+  const logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    formatters: {
+      level: (label) => ({ level: label })
+    }
+  });
+
+  // Usage with correlation ID
+  logger.info({ userId, requestId, action: 'user_created' }, 'User registration completed');
+  ```
+
+* **Error Handling Strategy**:
+  - Custom error classes with proper inheritance
+  - Global error handler middleware
+  - Error logging with stack traces in development
+  - PII redaction in production logs
+
+### Performance & Monitoring
+* **Performance Targets**:
+  - Cold start: < 300ms
+  - API response time: p95 < 200ms under 50 RPS
+  - Memory usage: < 512MB at steady state
+  - Database query time: p95 < 100ms
+
+* **Health Checks & Metrics**:
+  ```typescript
+  // Health endpoint
+  app.get('/health', async (req, res) => {
+    const checks = await Promise.allSettled([
+      checkDatabase(),
+      checkRedis(),
+      checkExternalAPI()
+    ]);
+
+    const allHealthy = checks.every(check => check.status === 'fulfilled');
+    res.status(allHealthy ? 200 : 503).json({
+      status: allHealthy ? 'healthy' : 'unhealthy',
+      checks: checks.map(check => ({
+        status: check.status,
+        duration: check.value?.duration || 0
+      }))
+    });
+  });
+  ```
+
+* **Observability**:
+  - Prometheus metrics for custom business metrics
+  - Distributed tracing with OpenTelemetry
+  - APM integration (New Relic, DataDog, or similar)
+
+### Testing Strategy
+* **Test Pyramid**:
+  - Unit tests: Business logic in domain layer
+  - Integration tests: Database operations and external API calls
+  - E2E tests: Full request/response cycles
+  - Contract tests: API consumer/provider contracts
+
+* **Test Configuration**:
+  ```typescript
+  // Test database setup
+  beforeEach(async () => {
+    await truncateAllTables();
+    await seedTestData();
+  });
+
+  // Mocking external dependencies
+  jest.mock('../infrastructure/email-service', () => ({
+    EmailService: jest.fn().mockImplementation(() => ({
+      sendEmail: jest.fn().mockResolvedValue({ messageId: 'test-123' })
+    }))
+  }));
+  ```
+
+### Deployment & Environment Management
+* **Environment Configuration**:
+  - Use `dotenv-flow` for environment-specific configs
+  - Schema validation for environment variables
+  - Secrets management via external services (AWS Secrets Manager, Azure Key Vault)
+
+* **Docker Configuration**:
+  ```dockerfile
+  FROM node:20-alpine
+  WORKDIR /app
+  COPY package*.json ./
+  RUN npm ci --only=production
+  COPY dist/ ./dist/
+  USER node
+  EXPOSE 3000
+  CMD ["node", "dist/index.js"]
+  ```
+```

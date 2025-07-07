@@ -3,24 +3,103 @@ description:
 globs:
 alwaysApply: true
 ---
----
-description: Cocos Creator 3.8+ TypeScript gameplay rules
-globs: ["assets/scripts/**/*.ts", "!node_modules/**"]
-alwaysApply: true
-priority: 90
----
 
-### Components
-* One responsibility per component; inheritance depth ≤ 2.
-* Cache `Node`/`Component` refs in `onLoad`; no `find()` inside `update()`.
+### Component Architecture & Lifecycle
+* **Single Responsibility**: One behavior per component; composition over inheritance
+* **Inheritance Limits**: Max depth = 2 (`Component → BaseComponent → SpecificComponent`)
+* **Component Communication**:
+  - Use EventTarget for loose coupling between components
+  - Implement command pattern for complex interactions
+  - Avoid direct component references across scenes
 
-### Performance
-* Pre-allocate `Vec3` / arrays outside loops; reuse buffers.
-* Heavy maths lives in a single System; others are event-driven.
+### Performance Optimization (Critical)
+* **Node & Component Reference Caching**:
+  - Cache all `Node` and `Component` references in `onLoad()`
+  - NEVER call `find()`, `getComponent()`, or `getChildByName()` in `update()`
+  - Use weak references for optional components
 
-### Memory & assets
-* Release `SpriteFrame`/`AudioClip` via `assetManager.releaseAsset` on scene exit.
-* New scenes load asynchronously with progress callback; never block main thread.
+* **Update Loop Optimization**:
+  - Keep `update()` methods under 1ms total execution time
+  - Use custom schedulers for non-critical periodic tasks
+  - Implement frame-rate independent movement with `deltaTime`
+  - Disable components when not needed; use `enabled` property
 
-### Type safety
-* `tsconfig`: `"strict": true`, `"noImplicitAny": true`, `"exactOptionalPropertyTypes": true`.
+* **Memory Management**:
+  - Pre-allocate `Vec3`, `Vec2`, and temporary objects outside loops
+  - Reuse math objects; avoid creating new vectors per frame
+  - Release unused assets via `assetManager.releaseAsset()`
+  - Implement object pooling for frequently created/destroyed objects
+
+### Scene & Asset Management
+* **Scene Loading Strategy**:
+  - All scene transitions must be asynchronous with progress callbacks
+  - Preload critical assets before scene activation
+  - Never block main thread with synchronous operations
+  - Implement scene transition queue for smooth UX
+
+* **Asset Lifecycle**:
+  - Track asset references manually; auto-release on scene exit
+  - Use Resource Groups for logical asset batching
+  - Compress textures appropriately per platform
+  - Audio: Use compressed formats; unload after playback for music
+
+### TypeScript Configuration (Strict)
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "useUnknownInCatchVariables": true
+  }
+}
+```
+
+### Event System & State Management
+* **Event Handling**:
+  - Use typed events with interfaces; avoid `any` in event data
+  - Unsubscribe all events in `onDestroy()`
+  - Implement event pooling for high-frequency events
+  - Use priority system for event processing order
+
+* **State Management**:
+  - Centralized game state using singleton pattern
+  - Immutable state updates; use deep cloning for complex objects
+  - State persistence via `sys.localStorage` with compression
+  - Implement state history for debugging
+
+### Animation & Tweening
+* **Tween Performance**:
+  - Use `tween()` system instead of manual interpolation
+  - Limit concurrent tweens; implement tween pooling
+  - Use easing functions appropriately; avoid expensive custom easings
+  - Stop/kill tweens on component disable
+
+### Physics Integration (if using)
+* **Physics Queries**: Batch physics queries; avoid per-frame raycasts
+* **Collision Detection**: Use collision layers effectively; minimize contact callbacks
+* **Rigid Body Management**: Sleep idle bodies; wake only when necessary
+
+### Platform-Specific Optimizations
+* **Mobile Performance**:
+  - Texture memory budget: ≤ 100MB total
+  - Draw call limit: ≤ 50 per frame for mobile
+  - Particle system limits: ≤ 500 particles simultaneously
+
+### Debugging & Development Tools
+* **Debug Utilities**:
+  - Custom debug panel with performance metrics
+  - Visual debugging for collision shapes and AI paths
+  - Memory usage tracking and leak detection
+  - Frame rate monitoring with alerts for drops below 55 FPS
+
+### Build Configuration
+* **Release Optimization**:
+  - Enable all compression options
+  - Strip debug symbols and console logs
+  - Minimize script bundle size via tree shaking
+  - Test on target devices with profiling enabled
+```

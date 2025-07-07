@@ -3,23 +3,213 @@ description:
 globs:
 alwaysApply: false
 ---
----
-description: Competitive-programming C++20 template
-globs: ["cp/**/*.cpp", "contest/**/*.cpp", "**/main.cpp"]
-alwaysApply: false
-priority: 70
----
+### Compilation & Build System
+* **Compiler Flags** (Performance):
+  ```bash
+  g++ -std=c++20 -O2 -pipe -DLOCAL_DEBUG \
+      -Wall -Wextra -Wconversion -Wshadow \
+      -fsanitize=address,undefined -g \
+      -o solution solution.cpp
+  ```
 
-### Compilation flags
-`g++ -std=c++20 -O2 -pipe -Wall -Wextra -Wconversion -Wshadow`
+* **Build Automation**:
+  ```makefile
+  # Makefile for competitive programming
+  CXX := g++
+  CXXFLAGS := -std=c++20 -O2 -Wall -Wextra
+  DEBUG_FLAGS := -DLOCAL_DEBUG -fsanitize=address,undefined -g
 
-### Template sections
-1. Fast I/O & aliases (`ios::sync_with_stdio(false); cin.tie(nullptr);`). :contentReference[oaicite:15]{index=15}
-2. `solve()` per test case – doc algorithm & complexity in one line.
-3. `main()` reads → calls `solve()` → prints.
+  %.debug: %.cpp
+  	$(CXX) $(CXXFLAGS) $(DEBUG_FLAGS) -o $@ $<
 
-### Constraints
-* Helper ≤ 60 LOC; recursion depth ≤ 1e4; no global mutable after `main()` starts.
+  %.release: %.cpp
+  	$(CXX) $(CXXFLAGS) -o $@ $<
+  ```
 
-### Local testing
-* Provide generator + checker in `tests/`; fuzz with `./stress.sh`.
+### Template Structure (Mandatory)
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// Type aliases for speed
+using ll = long long;
+using pii = pair<int, int>;
+using pll = pair<ll, ll>;
+using vi = vector<int>;
+using vll = vector<ll>;
+
+// Constants
+const int MOD = 1e9 + 7;
+const int INF = 1e9;
+const ll LINF = 1e18;
+
+// Fast I/O setup
+#define fastio ios::sync_with_stdio(false); cin.tie(nullptr); cout.tie(nullptr)
+
+// Debug utilities (LOCAL_DEBUG only)
+#ifdef LOCAL_DEBUG
+    #define debug(x) cerr << #x << " = " << x << endl
+    #define debugv(v) cerr << #v << " = "; for(auto x : v) cerr << x << " "; cerr << endl
+#else
+    #define debug(x)
+    #define debugv(v)
+#endif
+
+// Solution function - document algorithm & complexity
+void solve() {
+    // Algorithm: [Brief description]
+    // Time: O([complexity])
+    // Space: O([complexity])
+
+    // Implementation here
+}
+
+int main() {
+    fastio;
+
+    int t = 1;
+    cin >> t;  // Remove if single test case
+
+    while (t--) {
+        solve();
+    }
+
+    return 0;
+}
+```
+
+### Algorithm Implementation Standards
+* **Time Complexity Documentation**: Every function must document Big-O
+* **Space Complexity**: Critical for memory-limited problems
+* **Edge Cases**: Handle empty inputs, single elements, maximum constraints
+
+* **Common Algorithm Templates**:
+  ```cpp
+  // Binary Search Template
+  template<typename T>
+  int binary_search(vector<T>& arr, T target) {
+      // Time: O(log n), Space: O(1)
+      int left = 0, right = arr.size() - 1;
+      while (left <= right) {
+          int mid = left + (right - left) / 2;
+          if (arr[mid] == target) return mid;
+          if (arr[mid] < target) left = mid + 1;
+          else right = mid - 1;
+      }
+      return -1;
+  }
+
+  // Union-Find with path compression
+  class UnionFind {
+      vector<int> parent, rank;
+  public:
+      UnionFind(int n) : parent(n), rank(n, 0) {
+          iota(parent.begin(), parent.end(), 0);
+      }
+
+      int find(int x) {
+          return parent[x] == x ? x : parent[x] = find(parent[x]);
+      }
+
+      bool unite(int x, int y) {
+          x = find(x), y = find(y);
+          if (x == y) return false;
+          if (rank[x] < rank[y]) swap(x, y);
+          parent[y] = x;
+          if (rank[x] == rank[y]) rank[x]++;
+          return true;
+      }
+  };
+  ```
+
+### Performance Constraints
+* **Function Size**: Helper functions ≤ 50 LOC; main solve() ≤ 100 LOC
+* **Recursion Depth**: ≤ 1e4 to avoid stack overflow
+* **Memory Usage**: Track array sizes; use appropriate data types
+* **No Global Mutable State**: After main() starts, prefer local variables
+
+### Testing & Validation Framework
+* **Stress Testing Setup**:
+  ```bash
+  #!/bin/bash
+  # stress.sh - Automated stress testing
+
+  g++ -o solution solution.cpp
+  g++ -o brute brute.cpp
+  g++ -o generator generator.cpp
+
+  for i in {1..1000}; do
+      ./generator > input.txt
+      ./solution < input.txt > output.txt
+      ./brute < input.txt > expected.txt
+
+      if ! diff -q output.txt expected.txt > /dev/null; then
+          echo "Wrong answer on test $i"
+          echo "Input:"
+          cat input.txt
+          echo "Expected:"
+          cat expected.txt
+          echo "Got:"
+          cat output.txt
+          break
+      fi
+      echo "Test $i passed"
+  done
+  ```
+
+* **Test Case Generation**:
+  ```cpp
+  // generator.cpp template
+  #include <bits/stdc++.h>
+  using namespace std;
+
+  int main() {
+      srand(time(nullptr));
+
+      int n = rand() % 100 + 1;  // Adjust constraints
+      cout << n << endl;
+
+      for (int i = 0; i < n; i++) {
+          cout << rand() % 1000 + 1 << (i == n-1 ? "\n" : " ");
+      }
+
+      return 0;
+  }
+  ```
+
+### Contest-Specific Optimizations
+* **Input Parsing Speed**:
+  ```cpp
+  // For very large inputs
+  inline int readInt() {
+      int x = 0;
+      char c = getchar();
+      while (c < '0' || c > '9') c = getchar();
+      while (c >= '0' && c <= '9') {
+          x = x * 10 + c - '0';
+          c = getchar();
+      }
+      return x;
+  }
+  ```
+
+* **Output Optimization**:
+  ```cpp
+  // Batch output for better performance
+  ostringstream oss;
+  for (int i = 0; i < n; i++) {
+      oss << result[i] << "\n";
+  }
+  cout << oss.str();
+  ```
+
+### Memory Management
+* **Stack vs Heap**: Prefer stack allocation; use heap only for large arrays
+* **Array Size Limits**: Stack arrays ≤ 10^6 elements; use global arrays for larger
+* **Memory Pool**: For frequent allocations, implement simple memory pool
+
+### Platform-Specific Considerations
+* **Judge Systems**: Test on different compilers (GCC, Clang)
+* **Time Limits**: Always benchmark on slower hardware
+* **Precision**: Use `long double` for geometric problems requiring high precision
+```

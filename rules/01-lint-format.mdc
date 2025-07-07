@@ -3,17 +3,70 @@ description:
 globs:
 alwaysApply: true
 ---
----
-description: Formatting & linting blocker – CI fails on drift
-globs: ["."]
-alwaysApply: true
-priority: 95
----
+### TypeScript/JavaScript Configuration
+* **Prettier**:
+  - `printWidth: 100`
+  - `singleQuote: true`
+  - `trailingComma: 'all'`
+  - `tabWidth: 2`
+  - `semi: true`
+  - `bracketSpacing: true`
+  - `arrowParens: 'avoid'`
 
-* **Prettier** root config: `printWidth 100 • singleQuote true • trailingComma all`.
-* **ESLint**: `eslint:recommended` + `@typescript-eslint/recommended` + `airbnb-typescript`.
-* **clang-format** style `LLVM` on `*.cpp,*.h`.
-* **dotnet-format**: `indent_size 4`, `var_for_built_in_types false`.
-* GitHub Action:
-  ```sh
-  npm run lint && npm run format:check && dotnet format --verify-no-changes
+* **ESLint Rules**:
+  - `@typescript-eslint/strict-type-checked`
+  - `@typescript-eslint/stylistic-type-checked`
+  - `eslint:recommended`
+  - `react-hooks/recommended` (for React projects)
+  - Custom rules: no-console in production, prefer-const, no-var
+
+### C# Formatting (.editorconfig)
+```ini
+[*.cs]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+trim_trailing_whitespace = true
+insert_final_newline = true
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = true:warning
+dotnet_sort_system_directives_first = true
+```
+
+### C++ Formatting (clang-format)
+```yaml
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: None
+```
+
+### Pre-commit Hooks (Mandatory)
+```bash
+#!/bin/bash
+# Install: npm install husky lint-staged --save-dev
+echo "Running pre-commit quality checks..."
+
+# Format check
+npm run format:check || exit 1
+
+# Lint check
+npm run lint || exit 1
+
+# Type check
+npm run type-check || exit 1
+
+# Test critical paths
+npm run test:critical || exit 1
+
+echo "✅ All quality checks passed"
+```
+
+### CI/CD Integration
+* **GitHub Actions**: Fail build on any linting/formatting violations
+* **SonarQube**: Quality gate must pass (A rating required)
+* **Automated fixes**: Auto-format on PR creation; require manual review for logic changes
+```

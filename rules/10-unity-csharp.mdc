@@ -3,28 +3,95 @@ description:
 globs:
 alwaysApply: true
 ---
----
-description: Unity (C#) gameplay & engine rules
-globs: ["Assets/**/*.cs"]
-alwaysApply: true
-priority: 90
----
+### Project Structure & Naming
+* **Folder Hierarchy**: `Scripts/[Domain]/[Feature]/[Component]`
+  - Example: `Scripts/Gameplay/Combat/WeaponController.cs`
+* **Namespace Mapping**: Folder structure → namespace exactly
+  - `Scripts/Gameplay/Combat` → `namespace Gameplay.Combat`
+* **Component Naming**:
+  - MonoBehaviour: `ComponentBehaviour` (e.g., `PlayerBehaviour`)
+  - ScriptableObject: `ComponentData` (e.g., `WeaponData`)
+  - Interfaces: `IComponent` (e.g., `IDamageable`)
+  - Managers: `ComponentManager` (e.g., `AudioManager`)
 
-### File & namespace
-* Folder mirrors namespace (`Scripts/Gameplay/Combat` → `Gameplay.Combat`).
-* `MonoBehaviour` suffix **Behaviour**; data-only structs suffix **Data**.
+### Performance-Critical Code (Update/FixedUpdate)
+* **ZERO ALLOCATIONS RULE**:
+  - No `new` keyword in hot paths
+  - No LINQ operations (`Where`, `Select`, `First`, etc.)
+  - No string concatenation; use `StringBuilder` or string interpolation sparingly
+  - No `GetComponent` calls; cache all references in `Awake`/`Start`
+  - No `FindObjectOfType` or `GameObject.Find` in runtime code
 
-### Update-path hygiene
-* **Zero allocations** in `Update`/`FixedUpdate` – ban `new`, LINQ, string concat, reflection.
-* Cache refs in `Awake`; forbid `FindObjectOfType` per-frame.
+* **Object Pooling Requirements**:
+  - All frequently instantiated objects (bullets, particles, UI elements) must use pools
+  - Pool size calculated based on worst-case scenario + 20% buffer
+  - Implement `IPoolable` interface for pooled objects
 
-### Data & config
-* Tunables live in **ScriptableObjects** – use Scriptable-Object pattern.
+* **Update Method Optimization**:
+  - Use `FixedUpdate` only for physics; `Update` for input/UI
+  - Implement custom update managers for > 10 similar components
+  - Use coroutines for non-critical periodic tasks
+  - Frame budget: < 16.67ms total Update time at 60 FPS
 
-### Physics & rendering
-* Physics logic only in fixed-step; visuals in frame-step.
-* Dev builds assert `rb != null` before force/velocity calls.
+### Data Architecture & Configuration
+* **ScriptableObject Strategy**:
+  - All game configuration in ScriptableObjects (damage values, speeds, UI settings)
+  - Use `[CreateAssetMenu]` with organized menu paths
+  - Implement data validation in `OnValidate()`
+  - Version control friendly: avoid nested ScriptableObjects
 
-### Profiling & tests
-* Add Play-Mode test for each mechanic.
-* If new system > 2 ms/frame in sample scene, attach **ProfilerRecorder** and file optimisation note.
+* **Serialization Rules**:
+  - Use `[SerializeField]` for private fields instead of public
+  - Group related fields with `[Header("Group Name")]`
+  - Add `[Tooltip("Description")]` for designer-facing fields
+  - Use `[Range(min, max)]` for numeric values with known bounds
+
+### Component Architecture
+* **Composition over Inheritance**:
+  - Prefer component aggregation over deep inheritance
+  - Max inheritance depth: 2 levels (MonoBehaviour → BaseComponent → SpecificComponent)
+  - Use interfaces for cross-cutting concerns (`IDamageable`, `IInteractable`)
+
+* **Component Communication**:
+  - Use UnityEvents for loose coupling
+  - Implement Observer pattern for one-to-many notifications
+  - Use ScriptableObject events for global game events
+  - Avoid `SendMessage` and `BroadcastMessage`
+
+### Physics & Rendering Optimization
+* **Physics Rules**:
+  - All physics calculations in `FixedUpdate`
+  - Use `Rigidbody.MovePosition/MoveRotation` for kinematic movement
+  - Layer masks for collision filtering; avoid expensive collision checks
+  - Physics queries (`Raycast`, `OverlapSphere`) limited to essential only
+
+* **Rendering Performance**:
+  - Batch similar objects using GPU Instancing or SRP Batcher
+  - LOD groups for complex models; 3+ LOD levels required
+  - Texture atlasing for UI and small sprites
+  - Culling: frustum, occlusion, and distance-based
+
+### Memory Management
+* **Garbage Collection Minimization**:
+  - Use object pools for temporary objects
+  - Cache frequently accessed arrays and lists
+  - Use `StringBuilder` for dynamic strings
+  - Unsubscribe from events in `OnDestroy`
+
+### Testing & Debugging
+* **Play Mode Tests**: Each major system requires automated play mode test
+* **Performance Profiling**:
+  - Attach `ProfilerMarker` to expensive operations
+  - Frame time budget alerts if system exceeds 2ms/frame
+  - Memory allocation tracking in development builds
+
+* **Debug Tools**:
+  - Gizmos for spatial debugging in Scene view
+  - Custom inspector editors for complex components
+  - Debug menu with performance metrics overlay
+
+### Build & Platform Considerations
+* **Platform Defines**: Use `#if UNITY_EDITOR` for editor-only code
+* **Asset Bundle Strategy**: Separate frequently updated content
+* **Build Size**: Texture compression, audio compression, remove unused assets
+```

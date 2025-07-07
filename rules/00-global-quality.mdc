@@ -3,41 +3,58 @@ description:
 globs:
 alwaysApply: true
 ---
----
-description: “Global Quality Gate” – enforces clean code, solid architecture, professionalism
-globs: ["**/*.{ts,tsx,js,cs,cpp}"]
-alwaysApply: true
-priority: 100
----
+### Code Size & Complexity
+* **Functions**: ≤ 25 logical lines; ≤ 4 parameters; cyclomatic complexity ≤ 6
+* **Files**: ≤ 350 LOC; if larger, mandate logical decomposition with clear module boundaries
+* **Classes**: ≤ 7 public methods; ≤ 15 fields total; single responsibility strictly enforced
+* **Nesting**: ≤ 3 levels deep; prefer early returns and guard clauses
 
-## 1 · Code-style & Naming
-* **≤ 30 logical lines per function**; split when behaviour diverges.
-* **≤ 400 source lines per file** including tests.
-* **No magic numbers / strings** – promote to `const`, `readonly`, or `constexpr`.
+### Naming Conventions (Strict)
+* **Types/Classes**: `PascalCase` (e.g., `UserService`, `GameState`)
+* **Variables/Functions**: `camelCase` (e.g., `playerHealth`, `calculateDamage`)
+* **Constants**: `SCREAMING_SNAKE_CASE` (e.g., `MAX_PLAYER_COUNT`)
+* **Private C# fields**: `_camelCase` (e.g., `_playerList`)
+* **Abstract classes**: `Abstract` prefix (e.g., `AbstractWeapon`)
+* **Boolean variables**: Use `is`, `has`, `can`, `should` prefixes
 
-## 2 · Clean-code Practices
-* Self-documenting identifiers first; inline comments **only when the intent is non-obvious**.
-* Delete all dead code, `TODO`, `FIXME` and commented-out blocks before merging.
+### Architecture Principles (SOLID++)
+* **Single Responsibility**: Each class/module has ONE reason to change
+* **Open/Closed**: Extend via composition/inheritance, not modification
+* **Liskov Substitution**: Subtypes must be substitutable for base types
+* **Interface Segregation**: Many specific interfaces > one general interface
+* **Dependency Inversion**: Depend on abstractions, not concretions
+* **Zero cyclic dependencies**: Use dependency graph analysis
+* **Composition over Inheritance**: Max inheritance depth = 3
 
-## 3 · Architecture & Design
-* Follow **SRP + SOLID**; zero cyclic imports / namespaces.
-* Depend on abstractions (interfaces, abstract classes); concrete types stay inside their layer.
-* Use constructor-based **dependency injection**; *service-locator* and hidden singletons are banned.
+### Code Quality Gates
+* **Magic Numbers**: ZERO tolerance - all literals > 1 must be named constants
+* **Code Duplication**: No identical code blocks > 3 lines; extract to methods
+* **Dead Code**: Zero unused imports, variables, or methods
+* **TODO/FIXME**: Must include ticket number and deadline
+* **Comments**: Document WHY, not WHAT; avoid obvious comments
 
-## 4 · Safety & Reliability
-* Treat compiler **warnings as errors** ( `-Werror` / `/warnaserror` / `tsc --noEmitOnError` ).
-* Static-analysis must run clean (ESLint – error level, dotnet analyzers, clang-tidy).
+### Error Handling & Safety
+* **Null Safety**: All nullable types explicitly marked; use null-conditional operators
+* **Exception Handling**: Catch specific exceptions; never empty catch blocks
+* **Resource Management**: All IDisposable wrapped in using statements
+* **Warnings as Errors**: TypeScript strict mode; C# TreatWarningsAsErrors
+* **Defensive Programming**: Validate all inputs at public method boundaries
 
-## 5 · Tests & Coverage
-* Ship at least **one automated test** (unit or integration) for every non-trivial public behaviour.
-* Changed lines must reach **≥ 80 % statement coverage**.
-* Unit-test names follow `MethodUnderTest_WhenCondition_ShouldExpectedOutcome`.
+### Testing Requirements
+* **Coverage**: ≥ 85% line coverage; ≥ 95% for critical business logic
+* **Test Naming**: `Given_When_Then` or `Should_Do_When` format
+* **Test Independence**: Each test can run in isolation; no shared state
+* **Test Categories**: Unit (fast), Integration (medium), E2E (slow)
+* **Mock Strategy**: Mock external dependencies; test real object interactions
 
-## 6 · Documentation & Comments
-* Keep public APIs documented (`///`, `/** */` or docstring).
-* Comments explain **“why”, not “how”**.
+### Version Control & Collaboration
+* **Conventional Commits**: `type(scope): description` format strictly enforced
+* **PR Size**: ≤ 300 LOC changed; larger changes require design review
+* **Branch Naming**: `feature/`, `bugfix/`, `hotfix/`, `refactor/` prefixes
+* **Commit Frequency**: Small, atomic commits; each commit should compile
+* **Merge Strategy**: Squash feature branches; maintain clean history
 
-## 7 · Professional Git & PR Workflow
-* **Conventional Commits**: `type(scope): imperative-subject`.
-* Target **≤ 400 LOC per PR**. Larger changes must be broken into logical, reviewable chunks.
-* Every PR description answers **what**, **why**, **how-to-test**.
+### Performance Baselines
+* **Build Time**: TypeScript compilation < 30s; C# build < 15s
+* **Memory**: No memory leaks detectable in 10-minute stress test
+* **Startup**: Application cold start < 2s; warm start < 500ms

@@ -3,32 +3,144 @@ description:
 globs:
 alwaysApply: true
 ---
----
-description: React + TypeScript web UI (Atomic design, RTK/Zustand)
-globs: ["src/**/*.{tsx,ts}"]
-alwaysApply: true
-priority: 80
----
+### Project Architecture (Atomic Design)
+* **Folder Structure**:
+  ```
+  src/
+  ├── components/
+  │   ├── atoms/          # Basic elements (Button, Input, Label)
+  │   ├── molecules/      # Simple combinations (SearchBox, FormField)
+  │   ├── organisms/      # Complex components (Header, UserCard)
+  │   └── templates/      # Page layouts
+  ├── pages/              # Route components
+  ├── hooks/              # Custom hooks (prefix: use)
+  ├── services/           # API & external services
+  ├── stores/             # State management
+  ├── types/              # TypeScript definitions
+  └── utils/              # Pure functions
+  ```
 
-### Structure
-* Atomic folders `atoms/`, `molecules/`, `organisms/`, `pages/`.
-* One default export per file; filename === component name. :contentReference[oaicite:8]{index=8}
+* **Component Rules**:
+  - One component per file; filename === component name
+  - Default export for components; named exports for utilities
+  - Props interface must be explicitly typed and exported
+  - Use `React.FC<Props>` or function component syntax consistently
 
-### State management
-* < 5 global slices → **Zustand**; ≥ 5 or cross-team → **Redux Toolkit**. Provide rationale in PR. :contentReference[oaicite:9]{index=9}
-* No prop-drilling > 2 levels – elevate to context or store.
+### State Management Strategy
+* **Selection Criteria**:
+  - Local state only: `useState`, `useReducer`
+  - < 5 global stores: **Zustand** with TypeScript
+  - ≥ 5 stores or complex async: **Redux Toolkit** with RTK Query
+  - Server state: **TanStack Query** (React Query)
 
-### Hooks & effects
-* Side-effects only in `useEffect` or custom hooks in `/hooks/` (prefixed `use`).
-* Keep render path pure (no Date.now, random, side effects).
+* **State Architecture**:
+  - No prop drilling > 2 levels; use context or global state
+  - Colocate state as close to usage as possible
+  - Implement state normalization for complex nested data
+  - Use selectors for derived state; memoize expensive computations
 
-### Accessibility & UX
-* All interactive elements have `aria-` labels; colour contrast ≥ 4.5 : 1.
-* Lighthouse scores ≥ 90 Perf & Accessibility on critical path.
+### Component Performance
+* **Rendering Optimization**:
+  - Use `React.memo()` for expensive pure components
+  - Memoize callbacks with `useCallback`; dependencies with `useMemo`
+  - Implement virtual scrolling for lists > 100 items
+  - Lazy load non-critical components with `React.lazy()`
 
-### Performance
-* Initial JS bundle ≤ 250 KB gzip; code-split by route; images lazy-load.
-* React Profiler commit median < 10 ms. :contentReference[oaicite:10]{index=10}
+* **Bundle Performance**:
+  - Code splitting by route; dynamic imports for large dependencies
+  - Tree shake unused utilities; analyze bundle with `webpack-bundle-analyzer`
+  - Initial bundle size ≤ 250KB gzipped
+  - Implement service worker for static asset caching
 
-### Testing
-* Unit: **Vitest** + RTL; E2E: **Playwright**.  Snapshots only for leaf UI. :contentReference[oaicite:11]{index=11}
+### Hooks & Side Effects
+* **Hook Rules** (Strict):
+  - Custom hooks in `/hooks/` folder; prefix with `use`
+  - No side effects in render path; use `useEffect` or custom hooks
+  - Cleanup all subscriptions in `useEffect` cleanup function
+  - Dependencies array must be complete; use ESLint rules enforcement
+
+* **Effect Patterns**:
+  ```typescript
+  // ✅ Good: Specific dependencies
+  useEffect(() => {
+    fetchUserData(userId);
+  }, [userId]);
+
+  // ❌ Bad: Missing dependencies
+  useEffect(() => {
+    fetchUserData(userId);
+  }, []); // Missing userId dependency
+  ```
+
+### Type Safety (Strict TypeScript)
+* **TypeScript Configuration**:
+  ```json
+  {
+    "strict": true,
+    "noImplicitAny": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true
+  }
+  ```
+
+* **Type Patterns**:
+  - Use discriminated unions for component variants
+  - Implement proper generic constraints for reusable components
+  - Type all event handlers explicitly
+  - Use `as const` for readonly arrays and objects
+
+### Accessibility & UX Standards
+* **WCAG 2.1 AA Compliance**:
+  - All interactive elements have `aria-label` or `aria-labelledby`
+  - Color contrast ratio ≥ 4.5:1 for normal text, ≥ 3:1 for large text
+  - Keyboard navigation support for all interactive elements
+  - Screen reader testing with NVDA/JAWS
+
+* **Performance Metrics**:
+  - Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1
+  - Lighthouse scores: Performance ≥ 90, Accessibility ≥ 95
+  - React DevTools Profiler: commit time < 10ms median
+
+### Form Handling & Validation
+* **Form Libraries**: React Hook Form + Zod for validation
+* **Validation Strategy**:
+  - Client-side validation with server-side confirmation
+  - Real-time validation for UX; debounced API calls
+  - Error handling with proper error boundaries
+  - Form state persistence for multi-step forms
+
+### Testing Strategy
+* **Test Pyramid**:
+  - Unit: **Vitest** + **React Testing Library**
+  - Integration: Test component interactions and API mocking
+  - E2E: **Playwright** for critical user journeys
+  - Visual: **Chromatic** for component visual regression
+
+* **Testing Patterns**:
+  ```typescript
+  // ✅ Good: Test behavior, not implementation
+  test('should display error when form submission fails', async () => {
+    render(<LoginForm />);
+
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/login failed/i)).toBeInTheDocument();
+    });
+  });
+  ```
+
+### Security & Best Practices
+* **Security Measures**:
+  - Sanitize all user inputs; use DOMPurify for HTML content
+  - Implement CSP headers; validate all external URLs
+  - Use HTTPS only; secure cookie settings
+  - Environment variable validation with schema
+
+* **Performance Monitoring**:
+  - Error tracking: Sentry with source maps
+  - Performance monitoring: Web Vitals tracking
+  - User analytics: Privacy-compliant tracking
+  - Bundle analysis in CI/CD pipeline
+```
