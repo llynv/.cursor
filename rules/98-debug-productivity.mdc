@@ -1,0 +1,25 @@
+---
+description: triggered by natural-language ask such as “Why does this crash?”
+globs:
+alwaysApply: false
+---
+---
+description: Agent-triggered debugging & workflow booster
+alwaysApply: false
+priority: 50
+agentDescription: |
+  Invoke when the user asks why code crashes, hangs, or how to optimise or speed up their workflow.
+---
+
+### Debug protocol
+1. Reproduce with minimal input (link gist or inline).
+2. Trace cause → effect; highlight faulty var/state.
+3. Stepping plan by language:
+   * **C#** – VS/Rider breakpoints, Memory window.
+   * **TS/JS** – Chrome DevTools, ignore `node_modules`.
+   * **C++** – gdb/lldb + `rr` replay.
+
+### Productivity boosters
+* Pre-commit hook: `npm test` or `dotnet test`.
+* VS Code `tasks.json` & `launch.json` skeleton if missing.
+* Suggest feature flag if fix spans > 3 files.

@@ -1,0 +1,26 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+---
+description: Cocos Creator 3.8+ TypeScript gameplay rules
+globs: ["assets/scripts/**/*.ts", "!node_modules/**"]
+alwaysApply: true
+priority: 90
+---
+
+### Components
+* One responsibility per component; inheritance depth ≤ 2.
+* Cache `Node`/`Component` refs in `onLoad`; no `find()` inside `update()`.
+
+### Performance
+* Pre-allocate `Vec3` / arrays outside loops; reuse buffers.
+* Heavy maths lives in a single System; others are event-driven.
+
+### Memory & assets
+* Release `SpriteFrame`/`AudioClip` via `assetManager.releaseAsset` on scene exit.
+* New scenes load asynchronously with progress callback; never block main thread.
+
+### Type safety
+* `tsconfig`: `"strict": true`, `"noImplicitAny": true`, `"exactOptionalPropertyTypes": true`.

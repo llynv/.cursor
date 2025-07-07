@@ -1,0 +1,30 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+---
+description: Unity (C#) gameplay & engine rules
+globs: ["Assets/**/*.cs"]
+alwaysApply: true
+priority: 90
+---
+
+### File & namespace
+* Folder mirrors namespace (`Scripts/Gameplay/Combat` → `Gameplay.Combat`).
+* `MonoBehaviour` suffix **Behaviour**; data-only structs suffix **Data**.
+
+### Update-path hygiene
+* **Zero allocations** in `Update`/`FixedUpdate` – ban `new`, LINQ, string concat, reflection.
+* Cache refs in `Awake`; forbid `FindObjectOfType` per-frame.
+
+### Data & config
+* Tunables live in **ScriptableObjects** – use Scriptable-Object pattern.
+
+### Physics & rendering
+* Physics logic only in fixed-step; visuals in frame-step.
+* Dev builds assert `rb != null` before force/velocity calls.
+
+### Profiling & tests
+* Add Play-Mode test for each mechanic.
+* If new system > 2 ms/frame in sample scene, attach **ProfilerRecorder** and file optimisation note.

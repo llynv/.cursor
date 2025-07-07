@@ -1,0 +1,25 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+---
+description: Competitive-programming C++20 template
+globs: ["cp/**/*.cpp", "contest/**/*.cpp", "**/main.cpp"]
+alwaysApply: false
+priority: 70
+---
+
+### Compilation flags
+`g++ -std=c++20 -O2 -pipe -Wall -Wextra -Wconversion -Wshadow`
+
+### Template sections
+1. Fast I/O & aliases (`ios::sync_with_stdio(false); cin.tie(nullptr);`). :contentReference[oaicite:15]{index=15}
+2. `solve()` per test case – doc algorithm & complexity in one line.
+3. `main()` reads → calls `solve()` → prints.
+
+### Constraints
+* Helper ≤ 60 LOC; recursion depth ≤ 1e4; no global mutable after `main()` starts.
+
+### Local testing
+* Provide generator + checker in `tests/`; fuzz with `./stress.sh`.

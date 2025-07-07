@@ -1,0 +1,34 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+---
+description: React + TypeScript web UI (Atomic design, RTK/Zustand)
+globs: ["src/**/*.{tsx,ts}"]
+alwaysApply: true
+priority: 80
+---
+
+### Structure
+* Atomic folders `atoms/`, `molecules/`, `organisms/`, `pages/`.
+* One default export per file; filename === component name. :contentReference[oaicite:8]{index=8}
+
+### State management
+* < 5 global slices → **Zustand**; ≥ 5 or cross-team → **Redux Toolkit**. Provide rationale in PR. :contentReference[oaicite:9]{index=9}
+* No prop-drilling > 2 levels – elevate to context or store.
+
+### Hooks & effects
+* Side-effects only in `useEffect` or custom hooks in `/hooks/` (prefixed `use`).
+* Keep render path pure (no Date.now, random, side effects).
+
+### Accessibility & UX
+* All interactive elements have `aria-` labels; colour contrast ≥ 4.5 : 1.
+* Lighthouse scores ≥ 90 Perf & Accessibility on critical path.
+
+### Performance
+* Initial JS bundle ≤ 250 KB gzip; code-split by route; images lazy-load.
+* React Profiler commit median < 10 ms. :contentReference[oaicite:10]{index=10}
+
+### Testing
+* Unit: **Vitest** + RTL; E2E: **Playwright**.  Snapshots only for leaf UI. :contentReference[oaicite:11]{index=11}

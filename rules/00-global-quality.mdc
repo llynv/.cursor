@@ -1,0 +1,43 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+---
+description: “Global Quality Gate” – enforces clean code, solid architecture, professionalism
+globs: ["**/*.{ts,tsx,js,cs,cpp}"]
+alwaysApply: true
+priority: 100
+---
+
+## 1 · Code-style & Naming
+* **≤ 30 logical lines per function**; split when behaviour diverges.
+* **≤ 400 source lines per file** including tests.
+* **No magic numbers / strings** – promote to `const`, `readonly`, or `constexpr`.
+
+## 2 · Clean-code Practices
+* Self-documenting identifiers first; inline comments **only when the intent is non-obvious**.
+* Delete all dead code, `TODO`, `FIXME` and commented-out blocks before merging.
+
+## 3 · Architecture & Design
+* Follow **SRP + SOLID**; zero cyclic imports / namespaces.
+* Depend on abstractions (interfaces, abstract classes); concrete types stay inside their layer.
+* Use constructor-based **dependency injection**; *service-locator* and hidden singletons are banned.
+
+## 4 · Safety & Reliability
+* Treat compiler **warnings as errors** ( `-Werror` / `/warnaserror` / `tsc --noEmitOnError` ).
+* Static-analysis must run clean (ESLint – error level, dotnet analyzers, clang-tidy).
+
+## 5 · Tests & Coverage
+* Ship at least **one automated test** (unit or integration) for every non-trivial public behaviour.
+* Changed lines must reach **≥ 80 % statement coverage**.
+* Unit-test names follow `MethodUnderTest_WhenCondition_ShouldExpectedOutcome`.
+
+## 6 · Documentation & Comments
+* Keep public APIs documented (`///`, `/** */` or docstring).
+* Comments explain **“why”, not “how”**.
+
+## 7 · Professional Git & PR Workflow
+* **Conventional Commits**: `type(scope): imperative-subject`.
+* Target **≤ 400 LOC per PR**. Larger changes must be broken into logical, reviewable chunks.
+* Every PR description answers **what**, **why**, **how-to-test**.

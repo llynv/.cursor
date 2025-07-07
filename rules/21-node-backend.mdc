@@ -1,0 +1,38 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+---
+description: Node + TypeScript backend (Clean / Hex Architecture)
+globs: ["server/**/*.{ts,js}", "!node_modules/**"]
+alwaysApply: true
+priority: 80
+---
+
+### Layout
+`domain/ → application/ → infrastructure/ → presentation/`  (ports/adapters). :contentReference[oaicite:12]{index=12}
+
+### Runtime & tooling
+* Node ≥ 20; dev start: `node --env-file=.env.local --no-warnings -r ts-node/register src/index.ts`.
+* ESLint + Prettier as per repo root.
+
+### Data
+* **Prisma** ORM; migrations via `prisma migrate`. All queries typed. :contentReference[oaicite:13]{index=13}
+* DTO layer maps Prisma models to transport objects (Swagger cannot annotate Prisma types). :contentReference[oaicite:14]{index=14}
+
+### API & docs
+* REST default; OpenAPI spec auto-generated (Nest Swagger or `tsoa`) and committed.
+* Routes versioned `/api/v1/*`.
+
+### Security
+* Enable `helmet`, `csurf`; rate-limit auth endpoints.
+* Secrets via `dotenv-flow`; never hard-code.
+
+### Observability
+* `/healthz` (readiness) + `/metrics` (Prometheus).
+* Structured logging via **pino**; redact PII.
+
+### Performance targets
+* Cold start < 300 ms; p95 latency < 200 ms under 50 RPS (locally measured).
+* CI load-test stage asserts these budgets.

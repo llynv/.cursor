@@ -1,0 +1,19 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+---
+description: Formatting & linting blocker – CI fails on drift
+globs: ["."]
+alwaysApply: true
+priority: 95
+---
+
+* **Prettier** root config: `printWidth 100 • singleQuote true • trailingComma all`.
+* **ESLint**: `eslint:recommended` + `@typescript-eslint/recommended` + `airbnb-typescript`.
+* **clang-format** style `LLVM` on `*.cpp,*.h`.
+* **dotnet-format**: `indent_size 4`, `var_for_built_in_types false`.
+* GitHub Action:
+  ```sh
+  npm run lint && npm run format:check && dotnet format --verify-no-changes
